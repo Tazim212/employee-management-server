@@ -36,7 +36,11 @@ async function connectToMongoDB() {
       const result = await EmployeeCollection.find().toArray()
       res.send(result)
     })
-
+    app.post("/new_empl", async(req,res) =>{
+      const employee = req.body;
+      const result = await EmployeeCollection.insertOne(employee)
+      res.send(result)
+    })
 
 
 
