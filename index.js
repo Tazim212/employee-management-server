@@ -21,7 +21,20 @@ async function connectToMongoDB() {
     const empployee = client.db("employee-management")
     const UserCollection = empployee.collection("UserCollection")
     const EmployeeCollection = empployee.collection("EmployeeCollection")
+    const DistrictCollection = empployee.collection("DistrictCollection")
+    const UpazillaCollection = empployee.collection("UpazillaCollection")
 
+    // ------------- districts & Upazilla ---------
+
+    app.get("/district", async(req, res) =>{
+      const result = await DistrictCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.get("/upazilla", async(req, res) =>{
+      const result = await UpazillaCollection.find().toArray()
+      res.send(result)
+    })
     // ------------- userList -----------
 
     app.post("/user", async(req,res) =>{
