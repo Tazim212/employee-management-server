@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 require('dotenv').config();
 const cors = require('cors')
 const app = express();
@@ -55,7 +55,11 @@ async function connectToMongoDB() {
       res.send(result)
     })
 
-
+    app.get("/empl/:empl_id", async(req,res) =>{
+      const {emplId} = req.params
+      const result = await EmployeeCollection.findOne(emplId)
+      res.send(result)
+    })
 
 
 
