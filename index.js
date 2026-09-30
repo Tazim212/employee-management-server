@@ -56,13 +56,17 @@ async function connectToMongoDB() {
     })
 
     app.get("/empl/:empl_id", async(req,res) =>{
-      const {emplId} = req.params
-      const result = await EmployeeCollection.findOne(emplId)
+      const {empl_id} = req.params
+      const result = await EmployeeCollection.findOne({employee_id: empl_id})
       res.send(result)
     })
 
 
-
+    app.delete("/empl/:empl_id", async(req, res) =>{
+      const {emplId} = req.params;
+      const result = await EmployeeCollection.deleteOne(emplId)
+      res.send(result)
+    })
 
     console.log("You successfully connected to MongoDB!");
     return client;
