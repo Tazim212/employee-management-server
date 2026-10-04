@@ -1,6 +1,7 @@
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 require('dotenv').config();
+var jwt = require('jsonwebtoken');
 const cors = require('cors')
 const app = express();
 const port = 5000;
@@ -10,6 +11,24 @@ const port = 5000;
 app.use(cors())
 app.use(express.json())
 
+const verifyToken = (req,res, next) =>{
+  const authorization = req.headers.authorization
+    console.log(authorization)
+    if(!authorization){
+        return res.status(403).send({message: "unauthorized access"})
+    }
+    const token = authorization.split(' ')[1]
+    if(!token){
+        return res.status(403).send({message: 'unauthorized access'})
+    }
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) =>{
+        if(err){
+            return res.status(401).send({message: "forbidden access"})
+        }
+        req.token_email = decoded.email
+        next()
+    })
+}
 
 const client = new MongoClient(`mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-eqifd2k-shard-00-00.tbmejyb.mongodb.net:27017,ac-eqifd2k-shard-00-01.tbmejyb.mongodb.net:27017,ac-eqifd2k-shard-00-02.tbmejyb.mongodb.net:27017/?ssl=true&replicaSet=atlas-bvjx8p-shard-0&authSource=admin&appName=Cluster0`);
 
@@ -24,6 +43,13 @@ async function connectToMongoDB() {
     const DistrictCollection = empployee.collection("DistrictCollection")
     const UpazillaCollection = empployee.collection("UpazillaCollection")
 
+
+    app.post("/getToken", (req, res) =>{
+            const loggedUser = req.body;
+            console.log(loggedUser)
+            const token = jwt.sign(loggedUser, process.env.JWT_SECRET,{expiresIn: "1h"})
+            res.send({token: token})
+    })
     // ------------- districts & Upazilla ---------
 
     app.get("/district", async(req, res) =>{
@@ -45,7 +71,7 @@ async function connectToMongoDB() {
 
     // ----------------- employee lists -----------
 
-    app.get("/employees", async(req, res) =>{
+    app.get("/employees", verifyToken, async(req, res) =>{
       const result = await EmployeeCollection.find().toArray()
       res.send(result)
     })
@@ -61,6 +87,12 @@ async function connectToMongoDB() {
       res.send(result)
     })
 
+    app.patch("/empl/:empl_id", async(req,res) =>{
+      const {empl_id} = req.params;
+      const updatedDoc = req.body
+      const result = await EmployeeCollection.updateOne({employee_id: empl_id}, { $set: updatedDoc })
+      res.send(result)
+    })
 
     app.delete("/empl/:empl_id", async(req, res) =>{
       const {emplId} = req.params;
