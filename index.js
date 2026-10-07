@@ -13,7 +13,6 @@ app.use(express.json())
 
 const verifyToken = (req,res, next) =>{
   const authorization = req.headers.authorization
-    console.log(authorization)
     if(!authorization){
         return res.status(403).send({message: "unauthorized access"})
     }
@@ -42,11 +41,11 @@ async function connectToMongoDB() {
     const EmployeeCollection = empployee.collection("EmployeeCollection")
     const DistrictCollection = empployee.collection("DistrictCollection")
     const UpazillaCollection = empployee.collection("UpazillaCollection")
+    const PayrollCollection = empployee.collection("PayrollCollection")
 
 
     app.post("/getToken", (req, res) =>{
             const loggedUser = req.body;
-            console.log(loggedUser)
             const token = jwt.sign(loggedUser, process.env.JWT_SECRET,{expiresIn: "1h"})
             res.send({token: token})
     })
@@ -65,12 +64,24 @@ async function connectToMongoDB() {
 
     app.post("/user", async(req,res) =>{
       const query = req.body;
+      query.role = "user"
       const result = await UserCollection.insertOne(query)
       res.send(result)
     })
 
     // ----------------- employee lists -----------
 
+    app.get("/employee-stats", async(req,res) =>{
+      const emplStates = await EmployeeCollection.aggregate([
+        {
+          $group : {
+            _id: "employee_id",
+            total: {$sum: 1}
+          }
+        }
+      ]).toArray()
+      res.send(emplStates)
+    })
     app.get("/employees", verifyToken, async(req, res) =>{
       const result = await EmployeeCollection.find().toArray()
       res.send(result)
@@ -99,6 +110,29 @@ async function connectToMongoDB() {
       const result = await EmployeeCollection.deleteOne(emplId)
       res.send(result)
     })
+
+
+    // ----------- employee payroll ----------
+
+    app.get("/empl_payroll", async(req,res) =>{
+      const result = await PayrollCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.get("/empl_payroll/:id", async(req,res) =>{
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+      const result = await PayrollCollection.findOne(query)
+      res.send(result)
+    })
+
+    app.post("/empl_pay", async(req,res) =>{
+      const query = req.body;
+      const result = await PayrollCollection.insertOne(query)
+      res.send(result)
+    })
+
+
 
     console.log("You successfully connected to MongoDB!");
     return client;
