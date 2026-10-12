@@ -132,6 +132,20 @@ async function connectToMongoDB() {
       res.send(result)
     })
 
+    app.patch("/empl_pay/:id", async(req,res) =>{
+      const id = req.params.id
+      const objId = {_id: new ObjectId(id)}
+      const {status} = req.body
+      const result = await PayrollCollection.updateOne(
+        objId,  
+        {
+          $set: {
+          status: status
+        }   
+      }
+    )
+      res.send(result)
+    })
 
 
     console.log("You successfully connected to MongoDB!");
