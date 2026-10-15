@@ -147,6 +147,58 @@ async function connectToMongoDB() {
       res.send(result)
     })
 
+    app.get("/payroll_stat", async(req,res) =>{
+      const payrollStat = await PayrollCollection.aggregate([
+       {
+        $facet: {          
+         "pending":  [
+          {    
+          $match: {status: "Pending"}
+        }
+        ],
+         "processing":  [
+          {    
+          $match: {status: "Processing"}
+        }
+        ],
+         "paid":  [
+          {    
+          $match: {status: "Paid"}
+        }
+        ],
+        "total": [
+          {
+            $match: {status: "Paid"}
+          },
+          {
+             $group: {
+               _id: null,
+                total: {
+                    $sum: {
+                      $subtract: [
+                           {
+                              $add: [
+                                  "$basic_salary",
+                                  "$home_allowance",
+                                  "$meal_allowance",
+                                  "$tour_allowance",
+                                  ],
+                            },
+                           {
+                              $add: ["$income_tax", "$health_insurance"],
+                           },
+                         ],
+                      },
+                   },        
+                },
+             }
+        ]
+        }
+       }
+          ]).toArray()
+      res.send(payrollStat)
+    })
+
 
     console.log("You successfully connected to MongoDB!");
     return client;
