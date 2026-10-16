@@ -42,6 +42,7 @@ async function connectToMongoDB() {
     const DistrictCollection = empployee.collection("DistrictCollection")
     const UpazillaCollection = empployee.collection("UpazillaCollection")
     const PayrollCollection = empployee.collection("PayrollCollection")
+    const PerformanceCollection = empployee.collection("PerformanceCollection")
 
 
     app.post("/getToken", (req, res) =>{
@@ -199,6 +200,31 @@ async function connectToMongoDB() {
       res.send(payrollStat)
     })
 
+
+    // ----------------------- employee reviews --------------------
+
+    app.get("/empl_review", async(req, res) =>{
+      const result = await PerformanceCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.get("/empl_review", async(req, res) =>{
+      const {status} = req.query;
+      const query = {}
+      if(status){
+        query.status = status
+      }
+      const result = await PerformanceCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    app.post("/empl_reviews", async(req,res) =>{
+      const reviews = req.body;
+      reviews.created_at = new Date()
+      reviews.status = "Completed"
+      const result = await PerformanceCollection.insertOne(reviews)
+      res.send(result)
+    })
 
     console.log("You successfully connected to MongoDB!");
     return client;
