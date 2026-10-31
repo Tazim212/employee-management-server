@@ -29,6 +29,16 @@ const verifyToken = (req,res, next) =>{
     })
 }
 
+const verifyAdmin = async(req, res, next) =>{
+      const email = req.decoded_email;
+      const query = {email}
+      const user = await UserCollection.findOne(query)
+      if(!user || user?.role !== "admin" ){
+        return res.status(403).send({message: "forbidden access"})
+      }
+      next()
+    }
+
 const client = new MongoClient(`mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@ac-eqifd2k-shard-00-00.tbmejyb.mongodb.net:27017,ac-eqifd2k-shard-00-01.tbmejyb.mongodb.net:27017,ac-eqifd2k-shard-00-02.tbmejyb.mongodb.net:27017/?ssl=true&replicaSet=atlas-bvjx8p-shard-0&authSource=admin&appName=Cluster0`);
 
 
@@ -43,12 +53,13 @@ async function connectToMongoDB() {
     const UpazillaCollection = empployee.collection("UpazillaCollection")
     const PayrollCollection = empployee.collection("PayrollCollection")
     const PerformanceCollection = empployee.collection("PerformanceCollection")
+    const PromotionCollection = empployee.collection("PromotionCollection")
 
 
     app.post("/getToken", (req, res) =>{
-            const loggedUser = req.body;
-            const token = jwt.sign(loggedUser, process.env.JWT_SECRET,{expiresIn: "1h"})
-            res.send({token: token})
+      const loggedUser = req.body;
+      const token = jwt.sign(loggedUser, process.env.JWT_SECRET,{expiresIn: "1h"})
+      res.send({token: token})
     })
     // ------------- districts & Upazilla ---------
 
@@ -63,6 +74,16 @@ async function connectToMongoDB() {
     })
     // ------------- userList -----------
 
+    app.get("/users/role", async(req, res) =>{
+      const {email} = req.query;
+      const query = {}
+      if(email){
+        query.email = email
+      }
+      const result = await UserCollection.find(query)
+      res.send({role: result?.role || "user"})
+    })
+    
     app.post("/user", async(req,res) =>{
       const query = req.body;
       query.role = "user"
@@ -83,19 +104,21 @@ async function connectToMongoDB() {
       ]).toArray()
       res.send(emplStates)
     })
+    
     app.get("/employees", verifyToken, async(req, res) =>{
       const result = await EmployeeCollection.find().toArray()
-      res.send(result)
-    })
-    app.post("/new_empl", async(req,res) =>{
-      const employee = req.body;
-      const result = await EmployeeCollection.insertOne(employee)
       res.send(result)
     })
 
     app.get("/empl/:empl_id", async(req,res) =>{
       const {empl_id} = req.params
       const result = await EmployeeCollection.findOne({employee_id: empl_id})
+      res.send(result)
+    })
+
+    app.post("/new_empl", async(req,res) =>{
+      const employee = req.body;
+      const result = await EmployeeCollection.insertOne(employee)
       res.send(result)
     })
 
@@ -173,7 +196,7 @@ async function connectToMongoDB() {
           },
           {
              $group: {
-               _id: null,
+               _id: null, 
                 total: {
                     $sum: {
                       $subtract: [
@@ -190,9 +213,28 @@ async function connectToMongoDB() {
                            },
                          ],
                       },
-                   },        
-                },
-             }
+                   },   
+                }, 
+          },
+        ],
+        "payrollDash": [
+          {
+            $group: {
+              _id: null,
+              totalAllowance: {
+                  $sum: {              
+                        $add: [
+                          "$home_allowance",
+                           "$meal_allowance",
+                           "$tour_allowance"
+                        ]                    
+                  }
+                },  
+              averageBasic: {
+                $avg: {$sum: [["$basic_salary"]]}
+              }      
+            }
+          }
         ]
         }
        }
@@ -246,6 +288,19 @@ async function connectToMongoDB() {
       reviews.created_at = new Date()
       reviews.status = "Completed"
       const result = await PerformanceCollection.insertOne(reviews)
+      res.send(result)
+    })
+
+    // ------------ promotion api-----------
+
+    app.get("/promotion", async(req,res) =>{
+      const result = await PromotionCollection.find().toArray()
+      res.send(result)
+    })
+    
+    app.post("/promotion", async(req,res) =>{
+      const promotion = req.body;
+      const result = await PromotionCollection.insertOne(promotion)
       res.send(result)
     })
 
