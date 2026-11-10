@@ -54,6 +54,10 @@ async function connectToMongoDB() {
     const PayrollCollection = empployee.collection("PayrollCollection")
     const PerformanceCollection = empployee.collection("PerformanceCollection")
     const PromotionCollection = empployee.collection("PromotionCollection")
+    const AttendenceCollection = empployee.collection("AttendenceCollection")
+    const OvertimeCollection = empployee.collection("OvertimeCollection")
+    const LeaveCollection = empployee.collection("LeaveCollection")
+    const AttCorrectionCollection = empployee.collection("AttCorrectionCollection")
 
 
     app.post("/getToken", (req, res) =>{
@@ -242,6 +246,52 @@ async function connectToMongoDB() {
       res.send(payrollStat)
     })
 
+    app.get("/dept_payroll", async(req,res) =>{
+      const deptPayroll = await PayrollCollection.aggregate([
+        {
+             $group: {
+               _id: {department: "$employee_department", salaryMonth: "$salary_month"}, 
+                total: {
+                    $sum: {
+                      $subtract: [
+                           {
+                              $add: [
+                                  "$basic_salary",
+                                  "$home_allowance",
+                                  "$meal_allowance",
+                                  "$tour_allowance",
+                                  ],
+                            },
+                           {
+                              $add: ["$income_tax", "$health_insurance"],
+                           },
+                         ],
+                      },
+                   },   
+                }, 
+          },
+          {
+            $sort: {
+                "_id.salary_month": 1,
+            },
+        },
+      ]).toArray()
+      res.send(deptPayroll)
+    })
+
+    // ----------------------- employee attendence ----------------
+
+    app.get("/attendence", async(req, res) =>{
+      const result = await AttendenceCollection.find().toArray()
+      res.send(result)
+    })
+    app.post("/daily_attend", async(req,res) =>{
+      const attendence = req.body;
+      attendence.shift = "General";
+      attendence.break = Number(60)
+      const result = await AttendenceCollection.insertOne(attendence)
+      res.send(result)
+    })
 
     // ----------------------- employee reviews --------------------
 
