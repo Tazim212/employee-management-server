@@ -293,6 +293,18 @@ async function connectToMongoDB() {
       res.send(result)
     })
 
+    app.get("/overtime", async(req, res) =>{
+      const cursor = OvertimeCollection.find()
+      const result = await cursor.toArray()
+      res.send(result)
+    })
+    app.post("/overtime", async(req,res) =>{
+      const overtime = req.body;
+      overtime.created_at = new Date()
+      const result = await OvertimeCollection.insertOne(overtime)
+      res.send(result)
+    })
+
     // ----------------------- employee reviews --------------------
 
     app.get("/all_review", async(req,res) =>{
