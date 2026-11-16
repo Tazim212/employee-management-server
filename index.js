@@ -294,10 +294,46 @@ async function connectToMongoDB() {
     })
 
     app.get("/overtime", async(req, res) =>{
-      const cursor = OvertimeCollection.find()
-      const result = await cursor.toArray()
-      res.send(result)
+      const result = await OvertimeCollection.aggregate([
+            {
+                $lookup: {
+                    from: "EmployeeCollection", 
+                    localField: "employee_name", 
+                    foreignField: "employee_name",  
+                    as: "employee_details" 
+                }
+            },
+            {
+                $unwind: "$employee_details" 
+            },
+        ]).toArray();
+
+        res.send(result);
     })
+
+    app.get("/overtime_stat", async(req,res) =>{
+      const ovrtimStat = await OvertimeCollection.aggregate([
+        {
+          $match: {status: "pending"}
+        },
+        {
+          $group: {
+            _id: null,
+            total: {$sum: {$toDouble: "$extra_hours"}},
+            totalPay: {
+              $sum: {
+                $multiply: [{$toDouble: "$extra_hours"}, {$toDouble: "$hourly_rate"}]
+              }
+            },
+            totalEmpl: {$sum: 1},
+            pendingCount: {$sum: 1}
+          },
+        },
+        
+      ]).toArray()
+      res.send(ovrtimStat)
+    })
+
     app.post("/overtime", async(req,res) =>{
       const overtime = req.body;
       overtime.created_at = new Date()
