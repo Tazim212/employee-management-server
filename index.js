@@ -313,20 +313,20 @@ async function connectToMongoDB() {
 
     app.get("/overtime_stat", async(req,res) =>{
       const ovrtimStat = await OvertimeCollection.aggregate([
-        {
-          $match: {status: "pending"}
-        },
+        // {
+        //   $match: {status: "pending"}
+        // },
         {
           $group: {
             _id: null,
-            total: {$sum: {$toDouble: "$extra_hours"}},
+            total: {$sum:"$extra_hours"},
             totalPay: {
               $sum: {
-                $multiply: [{$toDouble: "$extra_hours"}, {$toDouble: "$hourly_rate"}]
+                $multiply: ["$extra_hours", "$hourly_rate"]
               }
             },
             totalEmpl: {$sum: 1},
-            pendingCount: {$sum: 1}
+            // pendingCount: {$sum: 1}
           },
         },
         
@@ -338,6 +338,21 @@ async function connectToMongoDB() {
       const overtime = req.body;
       overtime.created_at = new Date()
       const result = await OvertimeCollection.insertOne(overtime)
+      res.send(result)
+    })
+
+    app.patch("/overtime/:id", async(req,res) =>{
+       const id = req.params.id
+       const objId = {_id: new ObjectId(id)}
+       const {status} = req.body
+       const result = await OvertimeCollection.updateOne(
+        objId,  
+        {
+          $set: {
+          status: status
+        }   
+      }
+    )
       res.send(result)
     })
 
