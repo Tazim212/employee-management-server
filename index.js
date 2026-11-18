@@ -313,23 +313,30 @@ async function connectToMongoDB() {
 
     app.get("/overtime_stat", async(req,res) =>{
       const ovrtimStat = await OvertimeCollection.aggregate([
-        // {
-        //   $match: {status: "pending"}
-        // },
         {
-          $group: {
-            _id: null,
-            total: {$sum:"$extra_hours"},
-            totalPay: {
-              $sum: {
-                $multiply: ["$extra_hours", "$hourly_rate"]
-              }
-            },
-            totalEmpl: {$sum: 1},
-            // pendingCount: {$sum: 1}
-          },
-        },
-        
+          $facet: {
+            statTotal: [
+              {
+                $group: {
+                _id: null,
+                 total: {$sum:"$extra_hours"},
+                 totalPay: {
+                    $sum: {
+                    $multiply: ["$extra_hours", "$hourly_rate"]
+                    }
+                  },
+                 totalEmpl: {$sum: 1},
+                },
+              },
+            ],
+            pending: [
+              {
+              $match: {status: "pending"}
+              },
+              {$count: "count"}
+            ]
+         }
+        }
       ]).toArray()
       res.send(ovrtimStat)
     })
