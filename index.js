@@ -348,6 +348,17 @@ async function connectToMongoDB() {
       res.send(result)
     })
 
+    app.get("/leave", async(req,res) =>{
+      const result = await LeaveCollection.find().toArray()
+      res.send(result)
+    })
+    app.post("/leave", async(req, res) =>{
+      const leave = req.body;
+      leave.created_at = new Date()
+      leave.status = "Pending"
+      const result = await LeaveCollection.insertOne(leave)
+      res.send(result)
+    })
     app.patch("/overtime/:id", async(req,res) =>{
        const id = req.params.id
        const objId = {_id: new ObjectId(id)}
